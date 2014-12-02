@@ -30,11 +30,11 @@ class Feather_View{
         return $name ? $this->data[$name] : $this->data;
     }
 
-    public function _set($name, $value = ''){
+    public function __set($name, $value = ''){
         $this->set($name, $value);
     }
 
-    public function _get($name){
+    public function __get($name){
         return $this->get($name);
     }
 

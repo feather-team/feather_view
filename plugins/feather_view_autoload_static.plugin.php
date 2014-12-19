@@ -32,7 +32,7 @@ function feather_view_autoload_static($path, $content = '', $view, $opt = array(
 		$array = array();
 
 		//合并map表
-		foreach($opt['resources'] as $resource){
+		foreach((array)$opt['resources'] as $resource){
 			$resource = require($resource);
 			$array = array_merge_recursive($array, $resource);
 		}

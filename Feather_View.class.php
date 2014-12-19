@@ -79,10 +79,11 @@ class Feather_View{
             }
         }
 
-        if($content === false){
+        //如果content获取不到，则直接获取path，path可为绝对路径
+        if($content === false && ($content = @file_get_contents($path)) === false){
             throw new Exception($path . ' is not exists!');
         }
-
+        
         return $content;
     }
 

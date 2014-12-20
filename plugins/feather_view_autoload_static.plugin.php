@@ -10,14 +10,13 @@ opt: array(
 function feather_view_autoload_static($path, $content = '', $view, $opt = array()){
 	$root = '';
 	$cache = null;
+	$path = '/' . ltrim($path, '/');
 
 	if(isset($opt['domain'])){
 		$root = $opt['domain'];
 	}
 
 	$view->set('FEATHER_STATIC_DOMAIN', $root);
-	
-	$path = '/' . ltrim($path, '/');
 
 	if(isset($opt['cache_dir'])){
 		$md5path = rtrim($opt['cache_dir'], '/') . '/' . md5($path) . '.php';
@@ -48,26 +47,30 @@ function feather_view_autoload_static($path, $content = '', $view, $opt = array(
 
 		//获取文件的loadjs的map和deps信息
 		$map_deps = isset($self_map['deps']) ? _feather_view_autoload_static_get_require_md($self_map['deps'], $maps) : array();
-		$headJs = isset($self_map['headJs']) ? _feather_view_autoload_static_get_url($self_map['headJs'], $maps, $root) : array();
-		$bottomJs = isset($self_map['bottomJs']) ? _feather_view_autoload_static_get_url($self_map['bottomJs'], $maps, $root) : array();
-		$css = isset($self_map['css']) ? _feather_view_autoload_static_get_url($self_map['css'], $maps, $root) : array();
-
+	
 		$cache = array(
 			'FEATHER_USE_HEAD_SCRIPTS' => array(
-				'outline' => $headJs,
 				'inline' => array(
 		        	//featherjs配置
 		            'require.config=' . $array['requireConfig'], 
 		            'require.mergeConfig(' . _feather_view_autoload_static_json_encode($map_deps) . ')'
 		        )
 			),
-	        'FEATHER_USE_SCRIPTS' => array(
-	        	'outline' => $bottomJs
-	        ),
-			'FEATHER_USE_STYLES' => array(
-				'outline' => $css
-			)	        
+	        'FEATHER_USE_SCRIPTS' => array(),
+			'FEATHER_USE_STYLES' => array()
 		);
+
+		if(isset($self_map['headJs'])){
+			$cache['FEATHER_USE_HEAD_SCRIPTS']['outline'] = _feather_view_autoload_static_get_url($self_map['headJs'], $maps, $root);
+		}
+
+		if(isset($self_map['bottomJs'])){
+			$cache['FEATHER_USE_SCRIPTS']['outline'] = _feather_view_autoload_static_get_url($self_map['bottomJs'], $maps, $root);
+		}
+
+		if(isset($self_map['css'])){
+			$cache['FEATHER_USE_STYLES']['outline'] = _feather_view_autoload_static_get_url($self_map['css'], $maps, $root);
+		}
 
 	    //如果需要设置缓存
 	    if(isset($opt['cache_dir'])){

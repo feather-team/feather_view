@@ -1,4 +1,4 @@
-feather_view_template_position
+Static Position
 ======================
 
 主要用于component单独调试使用，专为解决页面中不存在head和body结束标签而导致的无法加载静态资源的问题。
@@ -6,7 +6,7 @@ feather_view_template_position
 ###使用
 ```php
 $view = new Feather_View;
-$view->register_plugin('feather_view_template_position');
+$view->register_plugin('static_position');
 
 $view->display('/component/1.phtml');
 ```

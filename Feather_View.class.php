@@ -1,4 +1,6 @@
 <?php
+require dirname(__FILE__) . '/Feather_View_Plugin.class.php';
+
 class Feather_View{
     //默认后缀
     const DEFAULT_SUFFIX = '.tpl';
@@ -85,18 +87,26 @@ class Feather_View{
     }
 
     //注册一个插件
-    public function registerPlugin($callback, $opt = array()){
-        $this->plugins[] = array($callback, $opt);
+    public function registerPlugin($name, $opt = array()){
+        $this->plugins[] = array($name, $opt);
     }
 
     //调用插件
     protected function callPlugins($path, $content){
         foreach($this->plugins as $plugin){
-            if(!function_exists($plugin[0])){
-                require "{$this->plugins_dir}/{$plugin[0]}.plugin.php";
+            if(is_array($plugin)){
+                $classname = __CLASS__ . '_Plugin_' . preg_replace_callback('/(?:^|_)\w/', 'self::toUpperCase', $plugin[0]);
+                
+                if(!class_exists($classname)){
+                    require $this->plugins_dir . '/' . strtolower($classname) . '.php';
+                }
+
+                $obj = new $classname($plugin[1]);
+            }else{
+                $obj = $plugin;
             }
 
-            $content = $plugin[0]($path, $content, $this, $plugin[1]);
+            $content = $obj->exec($path, $content, $this);
         }
 
         return $content;
@@ -119,5 +129,9 @@ class Feather_View{
 
     protected static function checkHasSuffix($str){
         return !!preg_match('/\.[^\.]+$/', $str);
+    }
+
+    protected static function toUpperCase($match){
+        return strtoupper($match[0]);
     }
 }

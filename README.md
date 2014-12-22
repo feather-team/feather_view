@@ -45,11 +45,11 @@ component/common/header.tpl
 Feather_View提供了强大的插件运行机制，你可以在模版文件被引入后，对该模版的内容进行任何的修改，以便完成自己的定制化，该过程发生在模版文件被引入后与模版文件被执行前，也就是说传入插件的content参数只是模版的原始内容，非模版内部变量执行后被替换的内容。
 
 ```php
-require PLUGINS_PATH . '/feather_view_autoload_static.plugin.php';
+require PLUGINS_PATH . '/feather_view_plugin_autoload_static.php';
 
 $view = new Feather_View;
 //注册使用一个插件
-$view->registerPlugin('feather_view_autoload_static', array(
+$view->registerPlugin('autoload_static', array(
     'domain': 'http://baidu.com',
     'resources': array(
         ROOT . '/map_a.php',
@@ -59,21 +59,22 @@ $view->registerPlugin('feather_view_autoload_static', array(
 ));
 ```
 
-###开发插件
+###插件开发约定
+feather view的插件可继承于Feather_View_Plugin，也可以自行实现接口约定。
 ```php
 /*
 @path:string    display文件的路径，注：此为直接传入display的路径，并非完整路径
 @content:string 模版的内容 
 @view:object    模版对象
-@opt:array      register时传入的opt参数
 */
-function feather_view_autoload_static($path, $content = '', $view, $opt = array()){
-    //do something
-    return $content;
+class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin{
+	public function exec($path, $content, Feather_View $view){
+
+	}
 }
 ```
 
 ###插件列表
 
-* [feather_view_autoload_static](https://github.com/feather-ui/feather_view/blob/master/plugins/feather_view_autoload_static.md)
-* [feather_view_template_position](https://github.com/jsyczhanghao/feather_View/blob/master/plugins/feather_view_template_position.md)
+* [feather_view_plugin_autoload_static](https://github.com/feather-ui/feather_view/blob/master/plugins/feather_view_plugin_autoload_static.md)
+* [feather_view_plugin_static_position](https://github.com/feather-ui/feather_View/blob/master/plugins/feather_view_plugin_static_position.md)

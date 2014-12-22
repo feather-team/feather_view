@@ -56,11 +56,18 @@ class Feather_View{
 
     //显示模版
     public function display($path, $charset = 'utf-8', $type = 'text/html'){
-        if(!headers_sent()){
-            header("Content-type: {$type}; charset={$charset}");
-        }
-
+        $this->sendHeader($charset, $type);
         echo $this->fetch($path);
+    }
+
+    public function flush($path, $charset = 'utf-8', $type = 'text/html'){
+        $this->sendHeader($charset, $type);
+        $content = $this->fetch($path);
+        
+        ob_start();
+        echo $content;
+        ob_end_flush();
+        flush();
     }
 
     //调用component
@@ -112,6 +119,10 @@ class Feather_View{
         return $content;
     }
 
+    protected function sendHeader($charset, $type){
+        !headers_sent() && header("Content-type: {$type}; charset={$charset}");
+    }
+
     //evaluate content
     protected function evalContent($data489bc39ff0, $content489bc39ff0){
         ob_start();
@@ -120,10 +131,10 @@ class Feather_View{
         //evaluate code
         eval("?> {$content489bc39ff0}");
         //return ob content
-        $content489bc39ff0 = ob_get_clean();
-        //if can flush, flush!
-        ob_get_level() > 0 && ob_end_flush();
-        //return
+        $content489bc39ff0 = ob_get_contents();
+        //clean buffer
+        ob_end_clean();
+        
         return $content489bc39ff0;
     }
 

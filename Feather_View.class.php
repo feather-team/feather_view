@@ -93,15 +93,15 @@ class Feather_View{
 
     //调用插件
     protected function callPlugins($path, $content){
-        foreach($this->plugins as $plugin){
-            if(is_array($plugin)){
+        foreach($this->plugins as $key => $plugin){
+            if(!is_object($plugin)){
                 $classname = __CLASS__ . '_Plugin_' . preg_replace_callback('/(?:^|_)\w/', 'self::toUpperCase', $plugin[0]);
                 
                 if(!class_exists($classname)){
                     require $this->plugins_dir . '/' . strtolower($classname) . '.php';
                 }
 
-                $obj = new $classname($plugin[1]);
+                $obj = $this->plugins[$key] = new $classname($plugin[1]);
             }else{
                 $obj = $plugin;
             }

@@ -1,9 +1,5 @@
 <?php
-/*
-插件接口类
-提供基础方法，以及接口约定
-*/
-abstract class Feather_View_Plugin{
+abstract class Feather_View_Plugin_Abstract{
 	protected $options = array();
 
 	public function __construct($opt = array()){

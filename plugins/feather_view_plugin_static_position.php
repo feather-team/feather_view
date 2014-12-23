@@ -1,5 +1,5 @@
 <?php
-class Feather_View_Plugin_Static_Position extends Feather_View_Plugin{
+class Feather_View_Plugin_Static_Position extends Feather_View_Plugin_Abstract{
     public function exec($path, $content = '', $view){
         if(!preg_match('#</head>#', $content)){
             $content = '
@@ -13,7 +13,7 @@ class Feather_View_Plugin_Static_Position extends Feather_View_Plugin{
         if(!preg_match('#</body>#', $content)){
             $content .= '
             <?php
-            $this->get("FEATHER_BOTTOM_RESOURCE_LOADED", true);
+            $this->set("FEATHER_BOTTOM_RESOURCE_LOADED", true);
             $this->load("/component/resource/usescript", $this->get("FEATHER_USE_SCRIPTS"));
             ?>';
         }

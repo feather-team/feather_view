@@ -1,5 +1,5 @@
 <?php
-require dirname(__FILE__) . '/Feather_View_Plugin.class.php';
+require dirname(__FILE__) . '/Feather_View_Plugin_Abstract.class.php';
 
 class Feather_View{
     //默认后缀
@@ -27,7 +27,7 @@ class Feather_View{
 
     //获取值
     public function get($name = null){
-        return $name ? isset($this->data[$name]) ? $this->data[$name] : '' : $this->data;
+        return $name ? isset($this->data[$name]) ? $this->data[$name] : null : $this->data;
     }
 
     public function __set($name, $value = ''){
@@ -47,21 +47,27 @@ class Feather_View{
         $content = $this->loadFile($path);
 
         //if need to call plugins, call!
-        if($call_plugins){
-            $content = $this->callPlugins($path, $content);
+	if($call_plugins){
+	    $content = $this->callPlugins($path, $content);
+	}
+
+        if($data){
+            $data = array_merge($this->data, $data);
+        }else{
+            $data = $this->data;
         }
 
-        return $this->evalContent($data ? $data : $this->get(), $content);
+        return $this->evalContent($data, $content);
     }
 
     //显示模版
     public function display($path, $charset = 'utf-8', $type = 'text/html'){
-        $this->sendHeader($charset, $type);
+        self::sendHeader($charset, $type);
         echo $this->fetch($path);
     }
 
     public function flush($path, $charset = 'utf-8', $type = 'text/html'){
-        $this->sendHeader($charset, $type);
+        self::sendHeader($charset, $type);
         $content = $this->fetch($path);
         
         ob_start();
@@ -70,7 +76,7 @@ class Feather_View{
         flush();
     }
 
-    //调用component
+    //内嵌加载一个文件
     public function load($path, $data = null){
         echo $this->fetch("{$path}", $data, false);
     }
@@ -119,10 +125,6 @@ class Feather_View{
         return $content;
     }
 
-    protected function sendHeader($charset, $type){
-        !headers_sent() && header("Content-type: {$type}; charset={$charset}");
-    }
-
     //evaluate content
     protected function evalContent($data489bc39ff0, $content489bc39ff0){
         ob_start();
@@ -136,6 +138,10 @@ class Feather_View{
         ob_end_clean();
         
         return $content489bc39ff0;
+    }
+
+    public static function sendHeader($charset, $type){
+        !headers_sent() && header("Content-type: {$type}; charset={$charset}");
     }
 
     protected static function checkHasSuffix($str){

@@ -2,7 +2,7 @@
 /*
 自动加载动态资源插件
 */
-class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin{
+class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	//获取页面所有的静态资源
 	protected function getResources($path, $maps){
 		$selfMap = isset($maps[$path]) ? $maps[$path] : array();
@@ -124,7 +124,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin{
 				$selfMap = array_merge_recursive($array['commonMap'], $selfMap);
 			}
 
-			$headJsInline = array('require.config=' . $array['requireConfig']);
+			$headJsInline = array();
 
 			if(isset($selfMap['deps'])){
 				$config = $this->getRequireMD($selfMap['deps'], $maps);
@@ -152,9 +152,9 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin{
 				$cache['FEATHER_USE_STYLES']['outline'] = $this->getUrl($selfMap['css'], $maps, $domain);
 			}
 
-		    //如果需要设置缓存
-		    if(isset($opt['cache_dir'])){
-		    	$output = var_export($cache, true);
+			//如果需要设置缓存
+		    if($cache_dir){
+		   		$output = var_export($cache, true);
 		    	$date = date('Y-m-d H:i:s');
 		    	file_put_contents($md5path, "<?php\r\n/*\r\ndate: {$date}\r\nfile: {$path}\r\n*/return {$output};");
 		    }

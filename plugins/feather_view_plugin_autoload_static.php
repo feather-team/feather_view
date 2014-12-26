@@ -3,15 +3,45 @@
 自动加载动态资源插件
 */
 class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
+	private $map;
+	private $commonMap;
+	private $domain;
+	private $cache_dir;
+
+	protected function initialize(){
+		if($domain = $this->getOption('domain')){
+			$this->domain = $domain;
+		}else{
+			$this->domain = '';
+		}
+
+		$this->cache_dir = $this->getOption('cache_dir');
+	}
+
+	private function initMap(){
+		if(!$this->map){
+			$array = array();
+
+			//合并map表
+			foreach((array)$this->getOption('resources') as $resource){
+				$resource = require($resource);
+				$array = array_merge_recursive($array, $resource);
+			}
+
+			$this->map = $array['map'];
+			$this->commonMap = $array['commonMap'];
+		}
+	}
+
 	//获取页面所有的静态资源
-	protected function getResources($path, $maps){
-		$selfMap = isset($maps[$path]) ? $maps[$path] : array();
+	private function getResources($path){
+		$selfMap = isset($this->map[$path]) ? $this->map[$path] : array();
 
 		if(isset($selfMap['components'])){
 			$componentsMap = array();
 
 			foreach($selfMap['components'] as $components){
-				$componentsMap = array_merge_recursive($componentsMap, $this->getResources($components, $maps));
+				$componentsMap = array_merge_recursive($componentsMap, $this->getResources($components));
 			}
 
 			return array_merge_recursive($componentsMap, $selfMap);
@@ -21,18 +51,19 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	//获取静态资源正确的url
-	protected function getUrl($resources, $maps, $domain = ''){
+	private function getUrl($resources){
 		$tmp = array();
+		$maps = $this->map;
 
 		foreach($resources as $v){
 			if(isset($maps[$v])){
 				$info = $maps[$v];
 
 				if(isset($info['deps'])){
-					$tmp = array_merge($tmp, $this->getUrl($info['deps'], $maps, $domain));
+					$tmp = array_merge($tmp, $this->getUrl($info['deps']));
 				}
 
-				$tmp[] = $domain . $info['url'];
+				$tmp[] = $this->domain . $info['url'];
 			}else{
 				$tmp[] = $v;
 			}
@@ -42,10 +73,11 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	//获取require中的所有map信息和deps信息
-	protected function getRequireMD($deps, $maps){
+	private function getRequireMD($deps){
 		$mapResult = array(); 
 		$depResult = array();
 		$tmpDeps = array();
+		$maps = $this->map;
 
 		foreach($deps as $m){
 			if(isset($maps[$m])){
@@ -94,11 +126,11 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	public function exec($path, $content = '', $view){
 		$view->set('FEATHER_STATIC_DOMAIN', $domain = $this->getOption('domain'));
 
-		$cache = null;
 		$path = '/' . ltrim($path, '/');
+		$cache = null;
 
-		if($cache_dir = $this->getOption('cache_dir')){
-			$md5path = rtrim($cache_dir, '/') . '/' . md5($path) . '.php';
+		if($this->cache_dir){
+			$md5path = rtrim($this->cache_dir, '/') . '/' . md5($path) . '.php';
 
 			if(is_file($md5path)){
 				$cache = @require($md5path);
@@ -106,29 +138,20 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		}
 
 		if(!$cache){
-			//如果没有缓存
-			$array = array();
-
-			//合并map表
-			foreach((array)$this->getOption('resources') as $resource){
-				$resource = require($resource);
-				$array = array_merge_recursive($array, $resource);
-			}
-
-			$maps = $array['map'];
+			$this->initMap();
 
 			//拿到当前文件所有的map信息
-			$selfMap = $this->getResources($path, $maps);
+			$selfMap = $this->getResources($path);
 
 			if(!isset($selfMap['isPagelet'])){
-				$selfMap = array_merge_recursive($array['commonMap'], $selfMap);
+				$selfMap = array_merge_recursive($this->commonMap, $selfMap);
 			}
 
 			$headJsInline = array();
 
 			if(isset($selfMap['deps'])){
-				$config = $this->getRequireMD($selfMap['deps'], $maps);
-				$config['domain'] = $domain ? $domain : '';
+				$config = $this->getRequireMD($selfMap['deps']);
+				$config['domain'] = $this->domain;
 				$headJsInline[] = 'require.mergeConfig(' . self::jsonEncode($config) . ')';
 			}
 		
@@ -141,19 +164,19 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			);
 
 			if(isset($selfMap['headJs'])){
-				$cache['FEATHER_USE_HEAD_SCRIPTS']['outline'] = $this->getUrl($selfMap['headJs'], $maps, $domain);
+				$cache['FEATHER_USE_HEAD_SCRIPTS']['outline'] = $this->getUrl($selfMap['headJs']);
 			}
 
 			if(isset($selfMap['bottomJs'])){
-				$cache['FEATHER_USE_SCRIPTS']['outline'] = $this->getUrl($selfMap['bottomJs'], $maps, $domain);
+				$cache['FEATHER_USE_SCRIPTS']['outline'] = $this->getUrl($selfMap['bottomJs']);
 			}
 
 			if(isset($selfMap['css'])){
-				$cache['FEATHER_USE_STYLES']['outline'] = $this->getUrl($selfMap['css'], $maps, $domain);
+				$cache['FEATHER_USE_STYLES']['outline'] = $this->getUrl($selfMap['css']);
 			}
 
 			//如果需要设置缓存
-		    if($cache_dir){
+		    if($this->cache_dir){
 		   		$output = var_export($cache, true);
 		    	$date = date('Y-m-d H:i:s');
 		    	file_put_contents($md5path, "<?php\r\n/*\r\ndate: {$date}\r\nfile: {$path}\r\n*/return {$output};");

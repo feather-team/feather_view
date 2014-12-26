@@ -47,9 +47,9 @@ class Feather_View{
         $content = $this->loadFile($path);
 
         //if need to call plugins, call!
-	if($call_plugins){
-	    $content = $this->callPlugins($path, $content);
-	}
+    if($call_plugins){
+        $content = $this->callPlugins($path, $content);
+    }
 
         if($data){
             $data = array_merge($this->data, $data);

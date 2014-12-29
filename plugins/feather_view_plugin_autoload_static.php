@@ -124,7 +124,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 
 	//执行主程
 	public function exec($path, $content = '', $view){
-		$view->set('FEATHER_STATIC_DOMAIN', $domain = $this->getOption('domain'));
+		$view->set('FEATHER_STATIC_DOMAIN', $this->domain);
 
 		$path = '/' . ltrim($path, '/');
 		$cache = null;

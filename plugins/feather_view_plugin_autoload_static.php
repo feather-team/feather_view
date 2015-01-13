@@ -3,8 +3,9 @@
 自动加载动态资源插件
 */
 class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
-	private $map;
-	private $commonMap;
+	private $initedMap = false;
+	private $map = array();
+	private $commonMap = array();
 	private $domain;
 	private $cache_dir;
 
@@ -19,17 +20,18 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	private function initMap(){
-		if(!$this->map){
-			$array = array();
-
+		if(!$this->initedMap){
 			//合并map表
 			foreach((array)$this->getOption('resources') as $resource){
 				$resource = require($resource);
-				$array = array_merge_recursive($array, $resource);
+				$this->map = array_merge($this->map, $resource['map']);
+
+				if(!empty($resource['commonMap'])){
+					$this->commonMap = array_merge($this->commonMap, $resource['commonMap']);
+				}
 			}
 
-			$this->map = $array['map'];
-			$this->commonMap = $array['commonMap'];
+			$this->initedMap = true;
 		}
 	}
 
@@ -51,75 +53,87 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	//获取静态资源正确的url
-	private function getUrl($resources){
+	private function getUrl($resources, $returnHash = false, &$hash = array(), &$pkgHash = array()){
 		$tmp = array();
 		$maps = $this->map;
 
 		foreach($resources as $v){
+			//如果存在
 			if(isset($maps[$v])){
 				$info = $maps[$v];
 
-				if(isset($info['deps'])){
-					$tmp = array_merge($tmp, $this->getUrl($info['deps']));
-				}
+				//如果未查找过
+				if(!isset($hash[$v])){
+					//如果pack
+					if(isset($info['pkg'])){
+						$name = $info['pkg'];
+						
+						//如果pkg未查找过
+						if(!isset($pkgHash[$name])){
+							$pkg = $maps[$name];
+							//缓存
+							$url = $hash[$v] = $pkgHash[$name] = $this->domain . $pkg['url'];
 
-				$tmp[] = $this->domain . $info['url'];
+							//如果pkg有deps，并且不是mod，说明多个非mod文件合并，需要同时加载他们中所有的文件依赖，防止页面报错
+							if(isset($pkg['deps']) && !isset($info['isMod'])){
+								$tmp = array_merge($tmp, $this->getUrl($pkg['deps'], $returnHash, $hash, $pkgHash));
+							}
+						}else{
+							$url = $hash[$v] = $pkgHash[$name];
+						}
+
+						//如果自己有deps，并且是mod，则可以不通过pkg加载依赖，只需要加载自己的依赖就可以了，mod为延迟加载。
+						if(isset($info['deps']) && isset($info['isMod'])){
+							$tmp = array_merge($tmp, $this->getUrl($info['deps'], $returnHash, $hash, $pkgHash));
+						}
+					}else{
+						$url = $hash[$v] = $this->domain . $info['url'];
+
+						//如果自己有deps，没打包，直接加载依赖
+						if(isset($info['deps'])){
+							$tmp = array_merge($tmp, $this->getUrl($info['deps'], $returnHash, $hash, $pkgHash));
+						}
+					}
+				}else{
+					$url = $hash[$v];
+				}
 			}else{
-				$tmp[] = $v;
+				$url = $v;
 			}
+
+			$tmp[] = $url;
 		}
 
-		return array_unique($tmp);
+		return !$returnHash ? array_unique($tmp) : $hash;
 	}
 
-	//获取require中的所有map信息和deps信息
 	private function getRequireMD($deps){
-		$mapResult = array(); 
-		$depResult = array();
-		$tmpDeps = array();
+		$hash = $this->getUrl($deps, true);
+		$mapResult = array();
+		$depsResult = array();
 		$maps = $this->map;
 
-		foreach($deps as $m){
-			if(isset($maps[$m])){
-				$v = $maps[$m];
+		foreach($hash as $key => $value){
+			if(!isset($mapResult[$value])){
+				$mapResult[$value] = array();
+			}
 
-				$url = $v['url'];
+			$mapResult[$value][] = $key;
 
-				if(!isset($mapResult[$url])){
-					$mapResult[$url] = array();
-				}
+			if(isset($maps[$key])){
+				$info = $maps[$key];
 
-				$mapResult[$url][] = $m;
-
-				//deps
-				if(isset($v['deps'])){
-					$deps = $v['deps'];
-
-					//只将mod收集至deps中，以处理性能优化
-					if(isset($v['isMod'])){
-						$depResult[$m] = $deps;
-					}
-
-					$tmpDeps = array_merge($tmpDeps, $deps);
+				if(isset($info['deps']) && isset($info['isMod'])){
+					$depsResult[$key] = $info['deps'];
 				}
 			}
 		}
 
-		$return = array('map' => $mapResult, 'deps' => $depResult);
-
-		if(count($tmpDeps) > 0){
-			$return = array_merge_recursive($return, $this->getRequireMD($tmpDeps, $maps));
+		foreach($mapResult as $k => &$v){
+			$v = array_values(array_unique($v));
 		}
-
-		foreach($return['map'] as $key => $value){
-			$return['map'][$key] = array_values(array_unique($value));
-		}
-
-		foreach($return['deps'] as $key => $value){
-			$return['deps'][$key] = array_values(array_unique($value));
-		}
-
-		return $return;
+		
+		return array('map' => $mapResult, 'deps' => $depsResult);
 	}
 
 	//执行主程
@@ -144,7 +158,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$selfMap = $this->getResources($path);
 
 			if(!isset($selfMap['isPagelet'])){
-				$selfMap = array_merge_recursive($this->commonMap, $selfMap);
+				$selfMap = array_merge($this->commonMap, $selfMap);
 			}
 
 			$headJsInline = array();

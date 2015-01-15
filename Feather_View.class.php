@@ -1,6 +1,4 @@
 <?php
-require dirname(__FILE__) . '/Feather_View_Plugin_Abstract.class.php';
-
 class Feather_View{
     //默认后缀
     const DEFAULT_SUFFIX = '.tpl';
@@ -152,3 +150,35 @@ class Feather_View{
         return strtoupper($match[0]);
     }
 }
+
+class Feather_View_Loader{
+    protected static $importCache = array();
+    protected static $importPath = array();
+
+    public static function setImportPath($path = array()){
+        foreach((array)$path as $p){
+            self::$importPath[] = rtrim($path, '/');
+        }
+    }
+
+    public static function import($path){
+        $path = '/' . ltrim($path);
+
+        if(isset(self::$importCache[$path])){
+            return self::$importCache[$path];
+        }
+
+        foreach(self::$importPath as $prefix){
+            $realpath = $prefix . $path;
+
+            if(is_file($realpath)){
+                return self::$importCache[$path] = @include($realpath);
+            }
+        }
+
+        return self::$importCache[$path] = @include($path);
+    }
+}
+
+Feather_View_Loader::setImportPath(dirname(__FILE__));
+Feather_View_Loader::import('Feather_View_Plugin_Abstract.class.php');

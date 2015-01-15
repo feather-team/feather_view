@@ -7,7 +7,8 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	private $map = array();
 	private $commonMap = array();
 	private $domain;
-	private $cache_dir;
+	private $caching;
+	private $cache;
 
 	protected function initialize(){
 		if($domain = $this->getOption('domain')){
@@ -16,7 +17,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$this->domain = '';
 		}
 
-		$this->cache_dir = $this->getOption('cache_dir');
+		$this->caching = $this->getOption('caching');
 	}
 
 	private function initMap(){
@@ -136,20 +137,26 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		return array('map' => $mapResult, 'deps' => $depsResult);
 	}
 
+	private function getCache(){
+		if(!$this->cache){
+			$cache = $this->getOption('cache');
+
+			if(is_object($cache) && is_a($cache, 'Feather_View_Plugin_Cache_Abstract')){
+				$this->cache = $cache;
+			}else{
+				$this->cache = new $cache;
+			}
+		}
+
+		return $this->cache;
+	}
+
 	//执行主程
 	public function exec($path, $content = '', $view){
 		$view->set('FEATHER_STATIC_DOMAIN', $this->domain);
 
 		$path = '/' . ltrim($path, '/');
-		$cache = null;
-
-		if($this->cache_dir){
-			$md5path = rtrim($this->cache_dir, '/') . '/' . md5($path) . '.php';
-
-			if(is_file($md5path)){
-				$cache = @require($md5path);
-			}
-		}
+		$cache = $this->caching ? $this->getCache()->read($path) : null;
 
 		if(!$cache){
 			$this->initMap();
@@ -190,11 +197,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			}
 
 			//如果需要设置缓存
-		    if($this->cache_dir){
-		   		$output = var_export($cache, true);
-		    	$date = date('Y-m-d H:i:s');
-		    	file_put_contents($md5path, "<?php\r\n/*\r\ndate: {$date}\r\nfile: {$path}\r\n*/return {$output};");
-		    }
+			$this->caching && $this->getCache()->write($path, $cache);
 		}
 
 		//设置模版值

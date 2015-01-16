@@ -7,8 +7,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	private $map = array();
 	private $commonMap = array();
 	private $domain;
-	private $caching;
-	private $cache;
+	private $cache_dir;
 
 	protected function initialize(){
 		if($domain = $this->getOption('domain')){
@@ -17,7 +16,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$this->domain = '';
 		}
 
-		$this->caching = $this->getOption('caching');
+		$this->cache_dir = $this->getOption('cache_dir');
 	}
 
 	private function initMap(){
@@ -54,7 +53,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	//获取静态资源正确的url
-	private function getUrl($resources, $returnHash = false, &$hash = array(), &$pkgHash = array()){
+	private function getUrl($resources, $returnHash = false, $withDomain = true, &$hash = array(), &$pkgHash = array()){
 		$tmp = array();
 		$maps = $this->map;
 
@@ -73,11 +72,11 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 						if(!isset($pkgHash[$name])){
 							$pkg = $maps[$name];
 							//缓存
-							$url = $hash[$v] = $pkgHash[$name] = $this->domain . $pkg['url'];
+							$url = $hash[$v] = $pkgHash[$name] = $withDomain ? $this->domain . $pkg['url'] : $pkg['url'];
 
 							//如果pkg有deps，并且不是mod，说明多个非mod文件合并，需要同时加载他们中所有的文件依赖，防止页面报错
 							if(isset($pkg['deps']) && !isset($info['isMod'])){
-								$tmp = array_merge($tmp, $this->getUrl($pkg['deps'], $returnHash, $hash, $pkgHash));
+								$tmp = array_merge($tmp, $this->getUrl($pkg['deps'], $returnHash, $withDomain, $hash, $pkgHash));
 							}
 						}else{
 							$url = $hash[$v] = $pkgHash[$name];
@@ -85,14 +84,14 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 
 						//如果自己有deps，并且是mod，则可以不通过pkg加载依赖，只需要加载自己的依赖就可以了，mod为延迟加载。
 						if(isset($info['deps']) && isset($info['isMod'])){
-							$tmp = array_merge($tmp, $this->getUrl($info['deps'], $returnHash, $hash, $pkgHash));
+							$tmp = array_merge($tmp, $this->getUrl($info['deps'], $returnHash, $withDomain, $hash, $pkgHash));
 						}
 					}else{
-						$url = $hash[$v] = $this->domain . $info['url'];
+						$url = $hash[$v] = $withDomain ? $this->domain . $info['url'] : $info['url'];
 
 						//如果自己有deps，没打包，直接加载依赖
 						if(isset($info['deps'])){
-							$tmp = array_merge($tmp, $this->getUrl($info['deps'], $returnHash, $hash, $pkgHash));
+							$tmp = array_merge($tmp, $this->getUrl($info['deps'], $returnHash, $withDomain, $hash, $pkgHash));
 						}
 					}
 				}else{
@@ -109,7 +108,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	private function getRequireMD($deps){
-		$hash = $this->getUrl($deps, true);
+		$hash = $this->getUrl($deps, true, false);
 		$mapResult = array();
 		$depsResult = array();
 		$maps = $this->map;
@@ -137,26 +136,20 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		return array('map' => $mapResult, 'deps' => $depsResult);
 	}
 
-	private function getCache(){
-		if(!$this->cache){
-			$cache = $this->getOption('cache');
-
-			if(is_object($cache) && is_a($cache, 'Feather_View_Plugin_Cache_Abstract')){
-				$this->cache = $cache;
-			}else{
-				$this->cache = new $cache;
-			}
-		}
-
-		return $this->cache;
-	}
-
 	//执行主程
 	public function exec($path, $content = '', $view){
 		$view->set('FEATHER_STATIC_DOMAIN', $this->domain);
 
 		$path = '/' . ltrim($path, '/');
-		$cache = $this->caching ? $this->getCache()->read($path) : null;
+		$cache = null;
+
+		if($this->cache_dir){
+			$md5path = rtrim($this->cache_dir, '/') . '/' . md5($path) . '.php';
+
+			if(is_file($md5path)){
+				$cache = @require($md5path);
+			}
+		}
 
 		if(!$cache){
 			$this->initMap();
@@ -165,7 +158,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$selfMap = $this->getResources($path);
 
 			if(!isset($selfMap['isPagelet'])){
-				$selfMap = array_merge($this->commonMap, $selfMap);
+				$selfMap = array_merge_recursive($this->commonMap, $selfMap);
 			}
 
 			$headJsInline = array();
@@ -197,7 +190,11 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			}
 
 			//如果需要设置缓存
-			$this->caching && $this->getCache()->write($path, $cache);
+		    if($this->cache_dir){
+		   		$output = var_export($cache, true);
+		    	$date = date('Y-m-d H:i:s');
+		    	file_put_contents($md5path, "<?php\r\n/*\r\ndate: {$date}\r\nfile: {$path}\r\n*/return {$output};");
+		    }
 		}
 
 		//设置模版值

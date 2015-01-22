@@ -3,12 +3,13 @@
 自动加载动态资源插件
 */
 class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
-	private $initedMap = false;
 	private $map = array();
-	private $commonMap = array();
+	private $commonMap;
+	private $mapLoaded = array();
 	private $domain;
 	private $caching;
 	private $cache;
+	private $view;
 
 	protected function initialize(){
 		if($domain = $this->getOption('domain')){
@@ -20,19 +21,55 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		$this->caching = $this->getOption('caching');
 	}
 
-	private function initMap(){
-		if(!$this->initedMap){
-			//合并map表
-			foreach((array)$this->getOption('resources') as $resource){
-				$resource = require($resource);
-				$this->map = array_merge($this->map, $resource['map']);
+	private function initMap($path){
+		//if path can be find in map
+		if(isset($this->map[$path])){
+			return true;
+		}
 
-				if(!empty($resource['commonMap'])){
-					$this->commonMap = array_merge($this->commonMap, $resource['commonMap']);
+		$resources = $this->getOption('resources');
+
+		if(empty($resources) && $this->view->template_dir){
+			$resources = glob($this->view->template_dir . '/../map/**.php');
+		}
+
+		if(!empty($resources)){
+			$foundCommon = !empty($this->commonMap);
+			$foundPath = false;
+
+			//合并map表
+			foreach($resources as $resource){
+				if(isset($this->mapLoaded[$resource])){
+					continue;
+				}
+
+				$this->mapLoaded[$resource] = 1;
+
+				$resource = require($resource);
+				$map = $resource['map'];
+
+				if(isset($resource['commonMap'])){
+					if(!$foundCommon){
+						$this->commonMap = $resource['commonMap'];
+						$foundCommon = true;
+					}
+					
+					$this->map = array_merge($this->map, $map);
+
+					if(!$foundPath && isset($map[$path])){
+						$foundPath = true;
+					}
+				}else{
+					if(!$foundPath && isset($map[$path])){
+						$this->map = array_merge($this->map, $map);
+						$foundPath = true;
+					}
+				}
+
+				if($foundPath && $foundCommon){
+					break;
 				}
 			}
-
-			$this->initedMap = true;
 		}
 	}
 
@@ -153,13 +190,14 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 
 	//执行主程
 	public function exec($path, $content = '', Feather_View $view){
+		$this->view = $view;
 		$view->set('FEATHER_STATIC_DOMAIN', $this->domain);
 
 		$path = '/' . ltrim($path, '/');
 		$cache = $this->caching ? $this->getCache()->read($path) : null;
 
 		if(!$cache){
-			$this->initMap();
+			$this->initMap($path);
 
 			//拿到当前文件所有的map信息
 			$selfMap = $this->getResources($path);

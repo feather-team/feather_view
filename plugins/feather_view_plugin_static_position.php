@@ -1,6 +1,6 @@
 <?php
 class Feather_View_Plugin_Static_Position extends Feather_View_Plugin_Abstract{
-    public function exec($path, $content = '', $view){
+    public function exec($path, $content = '', Feather_View $view){
         if(!preg_match('#</head>#', $content)){
             $content = '
             <?php  

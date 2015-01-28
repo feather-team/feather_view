@@ -55,7 +55,7 @@ $view->registerPlugin('autoload_static', array(
         ROOT . '/map_a.php',
         ROOT . '/map_b.php'
     ),
-    'cache_dir': 'a'
+    'caching': true	//是否使用缓存
 ));
 ```
 

@@ -33,7 +33,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$resources = array();
 
 			foreach((array)$this->view->template_dir as $dir){
-				$resources = array_merge($resources, glob($dir . . '/../map/**.php'));
+				$resources = array_merge($resources, glob($dir . '/../map/**.php'));
 			}
 		}
 

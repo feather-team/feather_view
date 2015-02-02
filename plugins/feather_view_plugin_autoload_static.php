@@ -29,8 +29,12 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 
 		$resources = $this->getOption('resources');
 
-		if(empty($resources) && $this->view->template_dir){
-			$resources = glob($this->view->template_dir . '/../map/**.php');
+		if(empty($resources) && !empty($this->view->template_dir)){
+			$resources = array();
+
+			foreach((array)$this->view->template_dir as $dir){
+				$resources = array_merge($resources, glob($dir . . '/../map/**.php'));
+			}
 		}
 
 		if(!empty($resources)){

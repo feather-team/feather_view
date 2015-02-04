@@ -42,14 +42,12 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$foundPath = false;
 
 			//合并map表
-			foreach($resources as $resource){
-				if(isset($this->mapLoaded[$resource])){
+			foreach($resources as $resourcepath){
+				if(isset($this->mapLoaded[$resourcepath])){
 					continue;
 				}
 
-				$this->mapLoaded[$resource] = 1;
-
-				$resource = require($resource);
+				$resource = require($resourcepath);
 				$map = $resource['map'];
 
 				if(isset($resource['commonMap'])){
@@ -63,10 +61,14 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 					if(!$foundPath && isset($map[$path])){
 						$foundPath = true;
 					}
+
+					$this->mapLoaded[$resourcepath] = 1;
 				}else{
 					if(!$foundPath && isset($map[$path])){
 						$this->map = array_merge($this->map, $map);
 						$foundPath = true;
+
+						$this->mapLoaded[$resourcepath] = 1;
 					}
 				}
 

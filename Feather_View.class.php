@@ -1,6 +1,4 @@
 <?php
-require dirname(__FILE__) . '/Feather_View_Plugin_Abstract.class.php';
-
 class Feather_View{
     //默认后缀
     const DEFAULT_SUFFIX = '.tpl';
@@ -47,9 +45,9 @@ class Feather_View{
         $content = $this->loadFile($path);
 
         //if need to call plugins, call!
-	if($call_plugins){
-	    $content = $this->callPlugins($path, $content);
-	}
+        if($call_plugins){
+            $content = $this->callPlugins($path, $content);
+        }
 
         if($data){
             $data = array_merge($this->data, $data);
@@ -84,9 +82,9 @@ class Feather_View{
     //加载某一个文件内容
     protected function loadFile($path){
         foreach((array)$this->template_dir as $dir){
-            $_path = $dir . '/' . $path;
+            $realpath = $dir . '/' . $path;
 
-            if(($content = @file_get_contents($_path)) !== false){
+            if(($content = @file_get_contents($realpath)) !== false){
                 break;
             }
         }
@@ -109,9 +107,18 @@ class Feather_View{
         foreach($this->plugins as $key => $plugin){
             if(!is_object($plugin)){
                 $classname = __CLASS__ . '_Plugin_' . preg_replace_callback('/(?:^|_)\w/', 'self::toUpperCase', $plugin[0]);
-                
+
                 if(!class_exists($classname)){
-                    require $this->plugins_dir . '/' . strtolower($classname) . '.php';
+                    $classfile = strtolower($classname) . '.php';
+
+                    foreach($this->getPluginsDir() as $dir){
+                        $pluginRealPath = $dir . '/' . $classfile;
+
+                        if(is_file($pluginRealPath)){
+                            require $pluginRealPath;
+                            break;
+                        }
+                    }
                 }
 
                 $obj = $this->plugins[$key] = new $classname($plugin[1]);
@@ -123,6 +130,16 @@ class Feather_View{
         }
 
         return $content;
+    }
+
+    protected function getPluginsDir(){
+        $dirs = (array)$this->plugins_dir;
+
+        foreach((array)$this->template_dir as $dir){
+            array_push($dirs, $dir . '/../plugins');
+        }
+
+        return $dirs;
     }
 
     //evaluate content
@@ -152,3 +169,35 @@ class Feather_View{
         return strtoupper($match[0]);
     }
 }
+
+class Feather_View_Loader{     
+    protected static $importCache = array();       
+    protected static $importPath = array();        
+       
+    public static function setImportPath($path = array()){     
+        foreach((array)$path as $p){       
+            self::$importPath[] = rtrim($path, '/');       
+        }      
+    }      
+       
+    public static function import($path){      
+        $path = '/' . ltrim($path);        
+       
+        if(isset(self::$importCache[$path])){      
+            return self::$importCache[$path];      
+        }      
+       
+        foreach(self::$importPath as $prefix){     
+            $realpath = $prefix . $path;       
+       
+            if(is_file($realpath)){        
+                return self::$importCache[$path] = @include($realpath);        
+            }      
+        }      
+       
+        return self::$importCache[$path] = @include($path);        
+    }      
+}      
+       
+Feather_View_Loader::setImportPath(dirname(__FILE__));     
+Feather_View_Loader::import('Feather_View_Plugin_Abstract.class.php');

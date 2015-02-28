@@ -3,9 +3,10 @@
 自动加载动态资源插件
 */
 class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
-	private $map = array();
-	private $commonMap;
-	private $mapLoaded = array();
+	private $map = array();	//缓存检查的map
+	private $mapSources = array();	//map来源
+	private $commonMap;	//common map
+	private $mapLoaded = array();	//缓存map source
 	private $domain;
 	private $caching;
 	private $cache;
@@ -21,62 +22,86 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		}
 
 		$this->caching = $this->getOption('caching');
+		$this->initMapSources();
 	}
 
-	private function initMap($path){
+	private function initMapSources(){
+		$sources = $this->getOption('maps');
+
+		if(empty($sources)){
+			//兼容
+			$sources = $this->getOption('resources');
+		}
+
+		if(empty($sources) && !empty($this->view->template_dir)){
+			$sources = array();
+
+			foreach((array)$this->view->template_dir as $dir){
+				$sources = array_merge($sources, glob($dir . '/../map/**.php'));
+			}
+		}
+
+		$this->mapSources = (array)$sources;
+	}
+
+	//获取map表最大修改时间
+	private function getMaxMapModifyTime(){
+		$maxTime = 0;
+
+		foreach($this->mapSources as $file){
+			clearstatcache($file);
+			$lastModifyTime = filemtime($file);
+
+			if($lastModifyTime > $maxTime){
+				$maxTime = $lastModifyTime;
+			}
+		}
+
+		return $maxTime;
+	}
+
+	private function initSelfMap($path){
 		//if path can be find in map
 		if(isset($this->map[$path])){
 			return true;
 		}
 
-		$resources = $this->getOption('resources');
+		$foundCommon = !empty($this->commonMap);
+		$foundPath = false;
 
-		if(empty($resources) && !empty($this->view->template_dir)){
-			$resources = array();
-
-			foreach((array)$this->view->template_dir as $dir){
-				$resources = array_merge($resources, glob($dir . '/../map/**.php'));
+		//合并map表
+		foreach($this->mapSources as $file){
+			if(isset($this->mapLoaded[$file])){
+				continue;
 			}
-		}
 
-		if(!empty($resources)){
-			$foundCommon = !empty($this->commonMap);
-			$foundPath = false;
+			$info = require($file);
+			$map = $info['map'];
 
-			//合并map表
-			foreach($resources as $resourcepath){
-				if(isset($this->mapLoaded[$resourcepath])){
-					continue;
+			if(isset($info['commonMap'])){
+				if(!$foundCommon){
+					$this->commonMap = $info['commonMap'];
+					$foundCommon = true;
+				}
+				
+				$this->map = array_merge($this->map, $map);
+
+				if(!$foundPath && isset($map[$path])){
+					$foundPath = true;
 				}
 
-				$resource = require($resourcepath);
-				$map = $resource['map'];
-
-				if(isset($resource['commonMap'])){
-					if(!$foundCommon){
-						$this->commonMap = $resource['commonMap'];
-						$foundCommon = true;
-					}
-					
+				$this->mapLoaded[$file] = 1;
+			}else{
+				if(!$foundPath && isset($map[$path])){
 					$this->map = array_merge($this->map, $map);
+					$foundPath = true;
 
-					if(!$foundPath && isset($map[$path])){
-						$foundPath = true;
-					}
-
-					$this->mapLoaded[$resourcepath] = 1;
-				}else{
-					if(!$foundPath && isset($map[$path])){
-						$this->map = array_merge($this->map, $map);
-						$foundPath = true;
-
-						$this->mapLoaded[$resourcepath] = 1;
-					}
+					$this->mapLoaded[$file] = 1;
 				}
+			}
 
-				if($foundPath && $foundCommon){
-					break;
-				}
+			if($foundPath && $foundCommon){
+				break;
 			}
 		}
 	}
@@ -109,6 +134,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		$tmpCss = array();
 		$finalResources = array();
 		$finalRequires = array();
+		$requires = array();
 
 		foreach(self::$RESOURCES_TYPE as $type){
 			if(isset($selfMap[$type])){
@@ -140,12 +166,12 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			$finalRequires = $this->getUrl($requires, false, true);
 		}
 
-		// //get require info
+		//get require info
 		$finalMap = array();
 		$finalDeps = array();
 
 		foreach($finalRequires as $key => $value){
-			if(strrchr($key, '.') == '.css' && isset($maps[$key]) && !isset($maps[$key]['isMod'])){
+			if(!array_search($key, $requires) && strrchr($key, '.') == '.css' && isset($maps[$key]) && !isset($maps[$key]['isMod'])){
 				array_push($finalResources['css'], $this->domain . $value);
 				continue;
 			}
@@ -259,8 +285,10 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		$path = '/' . ltrim($path, '/');
 		$cache = $this->caching ? $this->getCache()->read($path) : null;
 
-		if(!$cache){
-			$this->initMap($path);
+		$lastModifyTime = $this->getMaxMapModifyTime();
+
+		if(!$cache || $lastModifyTime > $cache['MAX_LAST_MODIFY_TIME']){
+			$this->initSelfMap($path);
 
 			$resources = $this->getSelfResources($path);
 
@@ -283,7 +311,8 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		        ),
 				'FEATHER_USE_STYLES' => array(
 					'outline' => $resources['css']
-				)
+				),
+				'MAX_LAST_MODIFY_TIME' => $lastModifyTime
 			);
 
 

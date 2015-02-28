@@ -6,7 +6,7 @@ class Feather_View_Plugin_Autoload_Test_Data extends Feather_View_Plugin_Abstrac
 
 	private function initMap(){
 		//合并map表
-		foreach((array)$this->getOption('resources') as $resource){
+		foreach((array)$this->getOption('maps') as $resource){
 			$resource = require($resource);
 			$this->map = array_merge($this->map, $resource['map']);
 		}
@@ -48,7 +48,7 @@ class Feather_View_Plugin_Autoload_Test_Data extends Feather_View_Plugin_Abstrac
 		}
 
 		$view->set($fData);
-		
+
 		return $content;
 	}
 }

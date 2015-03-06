@@ -41,7 +41,6 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		}
 
 		$this->mapSources = (array)$sources;
-		$this->mapSourcesInited = true;
 	}
 
 	//获取map表最大修改时间

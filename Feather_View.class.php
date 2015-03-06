@@ -121,12 +121,12 @@ class Feather_View{
                     }
                 }
 
-                $obj = $this->plugins[$key] = new $classname($plugin[1]);
+                $obj = $this->plugins[$key] = new $classname($plugin[1], $this);
             }else{
                 $obj = $plugin;
             }
 
-            $content = $obj->exec($path, $content, $this);
+            $content = $obj->exec($path, $content);
         }
 
         return $content;

@@ -11,8 +11,6 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	private $domain;
 	private $caching;
 	private $cache;
-	private $view;
-
 	private static $RESOURCES_TYPE = array('headJs', 'bottomJs', 'css');
 
 	protected function initialize(){
@@ -43,6 +41,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 		}
 
 		$this->mapSources = (array)$sources;
+		$this->mapSourcesInited = true;
 	}
 
 	//获取map表最大修改时间
@@ -280,8 +279,8 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	}
 
 	//执行主程
-	public function exec($path, $content = '', Feather_View $view){
-		$this->view = $view;
+	public function exec($path, $content = ''){
+		$view = $this->view;
 		$view->set('FEATHER_STATIC_DOMAIN', $this->domain);
 
 		$path = '/' . ltrim($path, '/');

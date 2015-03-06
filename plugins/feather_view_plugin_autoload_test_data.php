@@ -29,7 +29,7 @@ class Feather_View_Plugin_Autoload_Test_Data extends Feather_View_Plugin_Abstrac
 		return $selfComponents;
 	}
 
-	public function exec($path, $content, Feather_View $view){
+	public function exec($path, $content){
 		$this->initMap();
 
 		$testRoot = rtrim($this->getOption('data_dir'), '/') . '/';
@@ -47,7 +47,7 @@ class Feather_View_Plugin_Autoload_Test_Data extends Feather_View_Plugin_Abstrac
 			}
 		}
 
-		$view->set($fData);
+		$this->view->set($fData);
 
 		return $content;
 	}

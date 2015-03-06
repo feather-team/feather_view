@@ -6,6 +6,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 	private $map = array();	//缓存检查的map
 	private $mapSources = array();	//map来源
 	private $commonMap;	//common map
+	private $useRequire;
 	private $mapLoaded = array();	//缓存map source
 	private $domain;
 	private $caching;
@@ -81,6 +82,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			if(isset($info['commonMap'])){
 				if(!$foundCommon){
 					$this->commonMap = $info['commonMap'];
+					$this->useRequire = $info['useRequire'];
 					$foundCommon = true;
 				}
 				
@@ -289,13 +291,12 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 
 		if(!$cache || $lastModifyTime > $cache['MAX_LAST_MODIFY_TIME']){
 			$this->initSelfMap($path);
-
 			$resources = $this->getSelfResources($path);
 
 			//拿到当前文件所有的map信息
 			$headJsInline = array();
 
-			if(!empty($resources['requires'])){
+			if(!empty($resources['requires']) && $this->useRequire){
 				$config = $resources['requires'];
 				$config['domain'] = $this->domain;
 				$headJsInline[] = 'require.mergeConfig(' . self::jsonEncode($config) . ')';

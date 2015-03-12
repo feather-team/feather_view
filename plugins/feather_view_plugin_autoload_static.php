@@ -297,7 +297,7 @@ class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
 			if(!empty($resources['requires']) && $this->useRequire){
 				$config = $resources['requires'];
 				$config['domain'] = $this->domain;
-				$headJsInline[] = 'require.mergeConfig(' . self::jsonEncode($config) . ')';
+				$headJsInline[] = '<script>require.mergeConfig(' . self::jsonEncode($config) . ')</script>';
 			}
 		
 			$cache = array(

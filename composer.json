@@ -8,7 +8,7 @@
         }
     ],
     "autoload": {
-    	"classmap": "./"
+    	"classmap": ["./Feather_View.class.php"]
     },
     "require": {
     	"php": ">=5.0"

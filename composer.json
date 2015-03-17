@@ -9,5 +9,8 @@
     ],
     "autoload": {
     	"classmap": "./"
+    },
+    "require": {
+    	"php": ">=5.0"
     }
 }

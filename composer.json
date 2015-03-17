@@ -1,0 +1,13 @@
+{
+    "name": "zhanghao/feather_view",
+    "description": "feather, view",
+    "authors": [
+        {
+            "name": "zhang hao",
+            "email": "jsyczhanghao@sina.com"
+        }
+    ],
+    "autoload": {
+    	"classmap": "./"
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "feather_view",
+  "description": "simple template engine",
+  "keywords": ["feather", "view"],
+  "homepage": "http://github.com/feather-ui/feather_view",
+  "authors": [
+    {
+      "name": "jsyczhanghao",
+      "email": "jsyczhanghao@sina.com",
+      "homepage": "http://github.com/jsyczhanghao"
+    }
+  ],
+  "require": {
+    "php": ">=5.0.0"
+  }
+}

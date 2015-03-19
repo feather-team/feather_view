@@ -41,14 +41,17 @@ component/common/header.tpl
 <p><?php echo $age;?></p>
 ```
 
-* registerPlugin 注册插件
-Feather_View提供了强大的插件运行机制，你可以在模版文件被引入后，对该模版的内容进行任何的修改，以便完成自己的定制化，该过程发生在模版文件被引入后与模版文件被执行前，也就是说传入插件的content参数只是模版的原始内容，非模版内部变量执行后被替换的内容。
+* 插件机制
+Feather_View提供了强大的插件注入机制，分为2种：
+
+1. registerPlugin 注册系统级插件，此种插件的开发已见[插件开发约定文档]
+你可以在模版文件被引入后，对该模版的内容进行任何的修改，以便完成自己的定制化，该过程发生在模版文件被引入后与模版文件被执行前，也就是说传入插件的content参数只是模版的原始内容，非模版内部变量执行后被替换的内容。
 
 ```php
 require PLUGINS_PATH . '/feather_view_plugin_autoload_static.php';
 
 $view = new Feather_View;
-//注册使用一个插件
+//注册一个系统级插件
 $view->registerPlugin('autoload_static', array(
     'domain': 'http://baidu.com',
     'resources': array(
@@ -60,21 +63,39 @@ $view->registerPlugin('autoload_static', array(
 ```
 
 ###插件开发约定
-feather view的插件可继承于Feather_View_Plugin，也可以自行实现接口约定。
+feather view的插件可继承于Feather_View_Plugin_Abstract,此种插件可被注册为一个系统级插件，在display、fetch或者load时被调用，也可以自行实现接口约定，使用plugin API调用.
 ```php
 /*
-@path:string    display文件的路径，注：此为直接传入display的路径，并非完整路径
+该插件可被注册为系统插件
+
 @content:string 模版的内容 
-@view:object    模版对象
+@info:array		info种提供了一些模板的信息，比如path，是否使用load方式执行之类
 */
-class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin{
-	public function exec($path, $content, Feather_View $view){
+class Feather_View_Plugin_Autoload_Static extends Feather_View_Plugin_Abstract{
+	public function exec($content, $info){
 
 	}
 }
 ```
 
-###插件列表
+```php
+/*
+工具插件
+*/
 
-* [feather_view_plugin_autoload_static](https://github.com/feather-ui/feather_view/blob/master/plugins/feather_view_plugin_autoload_static.md)
-* [feather_view_plugin_static_position](https://github.com/feather-ui/feather_View/blob/master/plugins/feather_view_plugin_static_position.md)
+class Feather_View_Plugin_Util{
+	public function xssEncode($data){
+		return htmlentities($data);
+	}
+
+	public function jsonEncode($data){
+		return json_encode($data);
+	}
+}
+
+/*
+该插件调用方式如下：
+
+<div><?php echo $this->plugin('util')->xssEncode("<script>alert(123);</script>")?></div>
+*/
+```

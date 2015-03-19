@@ -19,5 +19,5 @@ abstract class Feather_View_Plugin_Abstract{
 		$this->options[$name] = $value;
 	}
 
-	abstract public function exec($path, $content);
+	abstract public function exec($content, $info);
 }

@@ -37,17 +37,15 @@ class Feather_View{
     }
 
     //执行模版返回
-    public function fetch($path, $data = null, $call_plugins = true){
+    public function fetch($path, $data = null, $isLoad = false){
         if(!self::checkHasSuffix($path)){
             $path = $path . $this->suffix;
         }
 
-        $content = $this->loadFile($path);
-
-        //if need to call plugins, call!
-        if($call_plugins){
-            $content = $this->callPlugins($path, $content);
-        }
+        $content = $this->callPlugins($this->loadFile($path), array(
+            'isLoad' => $isLoad,
+            'path' => $path
+        ));
 
         if($data){
             $data = array_merge($this->data, $data);
@@ -76,7 +74,7 @@ class Feather_View{
 
     //内嵌加载一个文件
     public function load($path, $data = null){
-        echo $this->fetch("{$path}", $data, false);
+        echo $this->fetch("{$path}", $data, true);
     }
 
     //加载某一个文件内容
@@ -97,46 +95,51 @@ class Feather_View{
         return $content;
     }
 
-    //注册一个插件
+    //注册一个系统级插件，该插件会在display或者fetch时，自动调用
     public function registerPlugin($name, $opt = array()){
         $this->plugins[] = array($name, $opt);
     }
 
-    //调用插件
-    protected function callPlugins($path, $content){
+    //调用被注册的插件
+    protected function callPlugins($content, $info = array()){
         foreach($this->plugins as $key => $plugin){
             if(!is_object($plugin)){
-                $classname = __CLASS__ . '_Plugin_' . preg_replace_callback('/(?:^|_)\w/', 'self::toUpperCase', $plugin[0]);
-
-                if(!class_exists($classname)){
-                    $classfile = strtolower($classname) . '.php';
-
-                    foreach($this->getPluginsDir() as $dir){
-                        $pluginRealPath = $dir . '/' . $classfile;
-
-                        if(is_file($pluginRealPath)){
-                            require $pluginRealPath;
-                            break;
-                        }
-                    }
-                }
-
-                $obj = $this->plugins[$key] = new $classname($plugin[1], $this);
+                $obj = $this->plugins[$key] = $this->plugin($plugin[0], isset($plugin[1]) ? $plugin[1] : null);
             }else{
                 $obj = $plugin;
             }
 
-            $content = $obj->exec($path, $content);
+            $content = $obj->exec($content, $info);
         }
 
         return $content;
+    }
+
+    //获取plugin实例
+    public function plugin($name, $opt = null){
+        $classname = __CLASS__ . '_Plugin_' . preg_replace_callback('/(?:^|_)\w/', 'self::toUpperCase', $name);
+
+        if(!class_exists($classname)){
+            $classfile = strtolower($classname) . '.php';
+
+            foreach($this->getPluginsDir() as $dir){
+                $pluginRealPath = $dir . '/' . $classfile;
+
+                if(is_file($pluginRealPath)){
+                    require $pluginRealPath;
+                    break;
+                }
+            }
+        }
+
+        return new $classname($opt, $this);
     }
 
     protected function getPluginsDir(){
         $dirs = (array)$this->plugins_dir;
 
         foreach((array)$this->template_dir as $dir){
-            array_push($dirs, $dir . '/../plugins');
+            array_push($dirs, "{$dir}/plugins", "{$dir}/../plugins");
         }
 
         return $dirs;

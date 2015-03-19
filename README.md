@@ -41,10 +41,11 @@ component/common/header.tpl
 <p><?php echo $age;?></p>
 ```
 
-* 插件机制
+###插件机制
+
 Feather_View提供了强大的插件注入机制，分为2种：
 
-1. registerPlugin 注册系统级插件，此种插件的开发已见[插件开发约定文档]
+* registerPlugin 注册系统级插件，此种插件的开发可见[插件开发约定文档]
 你可以在模版文件被引入后，对该模版的内容进行任何的修改，以便完成自己的定制化，该过程发生在模版文件被引入后与模版文件被执行前，也就是说传入插件的content参数只是模版的原始内容，非模版内部变量执行后被替换的内容。
 
 ```php
@@ -60,6 +61,11 @@ $view->registerPlugin('autoload_static', array(
     ),
     'caching': true	//是否使用缓存
 ));
+```
+
+* 普通插件的调用
+```html
+<div><?php echo $this->plugin('util')->xssEncode("<script>alert(123);</script>")?></div>
 ```
 
 ###插件开发约定

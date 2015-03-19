@@ -20,7 +20,14 @@ index/index.tpl
 <?php echo $name;?>
 ```
 
+
 ###API
+
+* template_dir	此属性指定模板目录，可为数组，feather会自动按照顺序去查找模板文件正确的地址，如果在所有目录种未找到模板文件，则将调用的模板文件当成绝对路径去加载
+
+* suffix	默认后缀，传入文件路径时，可缺省后缀，如果传入文件存在后缀，则按照传入文件的后缀加载文件
+
+* plugin_dir 指定插件目录，可为数组，如果不指定，调用插件或者register插件时，feather会自动去指定目录查找插件，如果查找不到，则将查找template_dir的目录中的plugins目录，以及template_dir的同级plugins目录
 
 * set($key[, $value]) 设置一个值, key可以为一个数组
  

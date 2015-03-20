@@ -142,6 +142,8 @@ class Feather_View{
             array_push($dirs, "{$dir}/plugins", "{$dir}/../plugins");
         }
 
+        $dirs[] = dirname(__FILE__) . "/plugins";
+
         return $dirs;
     }
 

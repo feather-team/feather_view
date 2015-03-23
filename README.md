@@ -62,7 +62,7 @@ $view = new Feather_View;
 //注册一个系统级插件
 $view->registerPlugin('autoload_static', array(
     'domain': 'http://baidu.com',
-    'resources': array(
+    'map': array(
         ROOT . '/map_a.php',
         ROOT . '/map_b.php'
     ),

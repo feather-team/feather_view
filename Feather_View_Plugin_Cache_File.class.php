@@ -35,7 +35,7 @@ class Feather_View_Plugin_Cache_File extends Feather_View_Plugin_Cache_Abstract{
 
 	public static function mkdir($dir, $mod = 0777){
 	    if(is_dir($dir)){
-	        return chmod($dir, $mod);
+	        return true;
 	    }else{
 	        $old = umask(0);
 

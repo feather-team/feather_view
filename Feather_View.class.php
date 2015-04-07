@@ -11,6 +11,7 @@ class Feather_View{
 
     protected $data = array();
     protected $plugins = array();
+    protected $pluginsObject = array();
 
     //设置值
     public function set($name, $value = ''){
@@ -103,13 +104,7 @@ class Feather_View{
     //调用被注册的插件
     protected function callPlugins($content, $info = array()){
         foreach($this->plugins as $key => $plugin){
-            if(!is_object($plugin)){
-                $obj = $this->plugins[$key] = $this->plugin($plugin[0], isset($plugin[1]) ? $plugin[1] : null);
-            }else{
-                $obj = $plugin;
-            }
-
-            $content = $obj->exec($content, $info);
+            $content = $this->plugin($plugin[0], isset($plugin[1]) ? $plugin[1] : null)->exec($content, $info);
         }
 
         return $content;
@@ -132,7 +127,13 @@ class Feather_View{
             }
         }
 
-        return new $classname($opt, $this);
+        if(!isset($this->pluginsObject[$name])){
+            $obj = $this->pluginsObject[$name] = new $classname($opt, $this);
+        }else{
+            $obj = $this->pluginsObject[$name];
+        }
+
+        return $obj;
     }
 
     protected function getPluginsDir(){

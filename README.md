@@ -113,4 +113,4 @@ class Feather_View_Plugin_Util{
 */
 ```
 
-[Feather_View插件](feather-team/feather-view-plugins)
+[Feather_View插件](http://github.com/feather-team/feather-view-plugins)

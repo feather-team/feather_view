@@ -46,6 +46,17 @@ index/index.tpl
 component/common/header.tpl
 ```php
 <p><?php echo $age;?></p>
+<p>
+<?php 
+//设置全局下的xxx变量
+$this->set('xx', 123);
+?>
+<?=$xx?>
+<!--获取一个全局下的变量-->
+<?=$this->get('xx')?>
+<!--获取所有全局下的变量-->
+<?php var_dump($this->get())?>
+</p>
 ```
 
 ###插件机制

@@ -39,7 +39,7 @@ class Feather_View_Plugin_Cache_File extends Feather_View_Plugin_Cache_Abstract{
 	    }else{
 	        $old = umask(0);
 
-	        if(mkdir($dir, $mod, true) && is_dir($dir)){
+	        if(@mkdir($dir, $mod, true) && is_dir($dir)){
 	            umask($old);
 	            return true;
 	        } else {

@@ -80,17 +80,25 @@ class Feather_View{
 
     //加载某一个文件内容
     protected function loadFile($path){
+        $content = false;
+
         foreach((array)$this->template_dir as $dir){
             $realpath = $dir . '/' . $path;
 
-            if(($content = @file_get_contents($realpath)) !== false){
-                break;
+            if(is_file($realpath)){
+                if(($content = file_get_contents($realpath)) !== false){
+                    break;
+                }
             }
         }
 
         //如果content获取不到，则直接获取path，path可为绝对路径
-        if($content === false && ($content = @file_get_contents($path)) === false){
-            throw new Exception($path . ' is not exists!');
+        if($content === false){
+            if(is_file($path)){
+                $content = file_get_contents($path);
+            }else{
+                throw new Exception($path . ' is not exists!');
+            }
         }
 
         return $content;
@@ -140,7 +148,7 @@ class Feather_View{
         $dirs = (array)$this->plugins_dir;
 
         foreach((array)$this->template_dir as $dir){
-            array_push($dirs, "{$dir}/plugins", "{$dir}/../plugins");
+            array_push($dirs, "{$dir}/plugins");
         }
 
         $dirs[] = dirname(__FILE__) . "/plugins";
@@ -197,11 +205,11 @@ class Feather_View_Loader{
             $realpath = $prefix . $path;       
        
             if(is_file($realpath)){        
-                return self::$importCache[$path] = @include($realpath);        
+                return self::$importCache[$path] = require($realpath);        
             }      
         }      
        
-        return self::$importCache[$path] = @include($path);        
+        return self::$importCache[$path] = require($path);        
     }      
 }      
        
